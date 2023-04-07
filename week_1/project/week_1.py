@@ -51,7 +51,8 @@ def csv_helper(file_name: str) -> Iterator[Stock]:
             yield Stock.from_list(row)
 
 
-@op(description="Get a list of stocks from S3.", config_schema={"s3_key": String})
+@op(description="Get a list of stocks from S3.",
+    config_schema={"s3_key": String})
 def get_s3_data_op(context) -> List[Stock]:
     s3_key = context.op_config["s3_key"]
     stocks = list(csv_helper(s3_key))
@@ -60,13 +61,8 @@ def get_s3_data_op(context) -> List[Stock]:
 
 @op(description="Given a list of stocks return an Aggregation with the highest value.")
 def process_data_op(context, stocks: List[Stock]) -> Aggregation:
-    result = Aggregation(date=stocks[0].date, high=stocks[0].high)
-
-    # Find the stock with the highest value
-    for s in stocks:
-        if s.high > result.high:
-            result = Aggregation(date=s.date, high=s.high)
-
+    highest_value_stock = max(stocks, key = lambda k: k.high)
+    result = Aggregation(date=highest_value_stock.date, high=highest_value_stock.high)
     return result
 
 
