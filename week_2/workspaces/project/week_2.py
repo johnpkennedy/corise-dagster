@@ -44,7 +44,6 @@ def process_data(context, stocks):
 @op(
     description="Upload an Aggregation to Redis.",
     ins={"aggregation": In(dagster_type=Aggregation, description="Highest value stock")},
-    out=None,
     required_resource_keys={"redis"},
     tags={"kind": "redis"},
 )
@@ -55,7 +54,6 @@ def put_redis_data(context, aggregation):
 @op(
     description="Upload an Aggregation to AWS S3.",
     ins={"aggregation": In(dagster_type=Aggregation, description="Highest value stock")},
-    out=None,
     required_resource_keys={"s3"},
     tags={"kind": "s3"},
 )
