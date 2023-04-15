@@ -19,11 +19,11 @@ from workspaces.types import Aggregation, Stock
 @op(
     config_schema={"s3_key": String},
     required_resource_keys={"s3"},
-    description="Get a list of stocks from S3.",
-    out={"stocks": Out(dagster_type = List[Stock])},
+    description="Get a list of stocks from an S3 file.",
+    out={"stocks": Out(dagster_type=List[Stock], description="Stock list")},
     tags={"kind": "s3"},
 )
-def get_s3_data(context):
+def get_s3_data(context: OpExecutionContext) -> List[Stock]:
     s3_key = context.op_config["s3_key"]
     s3_data = context.resources.s3.get_data(s3_key)
     stocks = list(Stock.from_list(r) for r in s3_data)
@@ -32,10 +32,10 @@ def get_s3_data(context):
 
 @op(
     description="Given a list of stocks return an Aggregation with the highest value stock.",
-    ins={"stocks": In(dagster_type=List[Stock], description="List of Stock")},
-    out={"aggregation": Out(dagster_type=Aggregation, description="Highest value stock")}
+    ins={"stocks": In(dagster_type=List[Stock], description="Stock list")},
+    out={"aggregation": Out(dagster_type=Aggregation, description="Highest value stock")},
 )
-def process_data(context, stocks):
+def process_data(context: OpExecutionContext, stocks: List[Stock]) -> Aggregation:
     highest_value_stock = max(stocks, key = lambda k: k.high)
     result = Aggregation(date=highest_value_stock.date, high=highest_value_stock.high)
     return result
@@ -44,20 +44,22 @@ def process_data(context, stocks):
 @op(
     description="Upload an Aggregation to Redis.",
     ins={"aggregation": In(dagster_type=Aggregation, description="Highest value stock")},
+    out=Out(Nothing),
     required_resource_keys={"redis"},
     tags={"kind": "redis"},
 )
-def put_redis_data(context, aggregation):
+def put_redis_data(context: OpExecutionContext, aggregation: Aggregation):
     context.resources.redis.put_data(str(aggregation.date), str(aggregation.high))
 
 
 @op(
-    description="Upload an Aggregation to AWS S3.",
+    description="Upload an Aggregation to an S3 file.",
     ins={"aggregation": In(dagster_type=Aggregation, description="Highest value stock")},
+    out=Out(Nothing),
     required_resource_keys={"s3"},
     tags={"kind": "s3"},
 )
-def put_s3_data(context, aggregation):
+def put_s3_data(context: OpExecutionContext, aggregation: Aggregation):
     d=datetime.utcnow().strftime('%Y-%m-%d')
     key_name=f'/aggregation_{d}.csv'
     context.resources.s3.put_data(key_name, aggregation)
