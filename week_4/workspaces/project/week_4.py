@@ -42,7 +42,7 @@ def process_data(context, get_s3_data) -> Aggregation:
     required_resource_keys={"redis"},
     op_tags={"kind": "redis"},       
 )
-def put_redis_data(context, process_data):
+def put_redis_data(context, process_data) -> Nothing:
     aggregation = process_data
     context.resources.redis.put_data(str(aggregation.date), str(aggregation.high))
 
@@ -52,7 +52,7 @@ def put_redis_data(context, process_data):
     required_resource_keys={"s3"},
     op_tags={"kind": "s3"},
 )
-def put_s3_data(context, process_data):
+def put_s3_data(context, process_data) -> Nothing:
     aggregation = process_data
     d=datetime.utcnow().strftime('%Y-%m-%d')
     key_name=f'/aggregation_{d}.csv'
@@ -65,7 +65,9 @@ project_assets = load_assets_from_current_module()
 local_config = {
     "ops": {
         "get_s3_data": {
-            "config": {"s3_key": "prefix/stock_9.csv"},
+            "config": {
+                "s3_key": "prefix/stock_9.csv"
+            },
         },
     },
 }
