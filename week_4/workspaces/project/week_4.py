@@ -20,7 +20,7 @@ from workspaces.types import Aggregation, Stock
     description="Get a list of stocks from an S3 file.",
     op_tags={"kind": "s3"},
 )
-def get_s3_data(context):
+def get_s3_data(context) -> List[Stock]:
     s3_key = context.op_config["s3_key"]
     s3_data = context.resources.s3.get_data(s3_key)
     stocks = list(Stock.from_list(r) for r in s3_data)
@@ -30,7 +30,7 @@ def get_s3_data(context):
 @asset(
     description="Given a list of stocks return an Aggregation with the highest value stock.",
 )
-def process_data(context, get_s3_data):
+def process_data(context, get_s3_data) -> Aggregation:
     stocks = get_s3_data
     highest_value_stock = max(stocks, key = lambda k: k.high)
     result = Aggregation(date=highest_value_stock.date, high=highest_value_stock.high)
@@ -62,8 +62,18 @@ def put_s3_data(context, process_data):
 project_assets = load_assets_from_current_module()
 
 
+local_config = {
+    "ops": {
+        "get_s3_data": {
+            "config": {"s3_key": "prefix/stock_9.csv"},
+        },
+    },
+}
+
 machine_learning_asset_job = define_asset_job(
     name="machine_learning_asset_job",
+    selection=project_assets,
+    config=local_config
 )
 
 machine_learning_schedule = ScheduleDefinition(job=machine_learning_asset_job, cron_schedule="*/15 * * * *")
